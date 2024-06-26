@@ -13,13 +13,7 @@ jobs:
       image-exists: ${{ steps.image-existence.outputs.exists }}
       image-tag: ${{ steps.image-existence.outputs.tag }}
     steps:
-      - uses: actions/checkout@v3
-
-      - name: Login to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: actions/checkout@v4
 
       - name: Prepare checking latest kubectl version
         env:
@@ -69,38 +63,38 @@ jobs:
         shell: bash +e {0}
         run: |
           echo "tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
-          result="$(DOCKER_CLI_EXPERIMENTAL=enabled docker manifest inspect ${REPO_OWNER}/kubectl-kustomize:${IMAGE_TAG} 2>&1)"
-          if [[ $? -eq 0 ]]; then
+          result="$(curl -s -o response.txt -w "%{http_code}" https://hub.docker.com/v2/repositories/${REPO_OWNER}/kubectl-kustomize/tags/${IMAGE_TAG})"
+          if [ $result -eq 200 ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
-          elif [[ $result == *"no such manifest"* ]]; then
+          elif [ $result -eq 404 ]; then
             echo "exists=false" >> $GITHUB_OUTPUT
           else
-            echo $result
-            exit 1;
+            cat response.txt
+            exit 1
           fi
   release:
     runs-on: ubuntu-20.04
     needs:
       - fetch-metadata
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Docker Hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and test image
         id: build
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           context: .
           tags: ${{ github.repository_owner }}/kubectl-kustomize:test
