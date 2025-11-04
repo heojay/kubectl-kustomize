@@ -12,7 +12,7 @@ ENTRYPOINT ["sh", "-o", "pipefail", "-c"]
 FROM base AS latest-kubectl-version
 
 CMD [ \
-    "curl -fs https://dl.k8s.io/release/stable.txt | \
+    "curl -fsL https://dl.k8s.io/release/stable.txt | \
     sed -e 's/\\v\\(.*\\)$/\\1/'" \
 ]
 
